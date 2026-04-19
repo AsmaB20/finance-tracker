@@ -4,6 +4,16 @@ const { getDB } = require('../db/database');
 const router = express.Router();
 
 const VALID_CATEGORIES = ['Food', 'Rent', 'Transport', 'Shopping', 'Subscriptions', 'Going Out', 'Health', 'Other'];
+const MONTH_RE = /^\d{4}-\d{2}$/;
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function isValidMonth(month) {
+  return typeof month === 'string' && MONTH_RE.test(month);
+}
+
+function isValidDate(date) {
+  return typeof date === 'string' && DATE_RE.test(date);
+}
 
 // Auth guard middleware
 function requireAuth(req, res, next) {
@@ -20,12 +30,15 @@ router.get('/', requireAuth, (req, res) => {
   const params = [req.session.userId];
 
   if (month) {
+    if (!isValidMonth(month)) return res.status(400).json({ error: 'Invalid month format.' });
     query += ` AND strftime('%Y-%m', date) = ?`;
     params.push(month);
   }
   if (category && VALID_CATEGORIES.includes(category)) {
     query += ' AND category = ?';
     params.push(category);
+  } else if (category && category !== 'all') {
+    return res.status(400).json({ error: 'Invalid category.' });
   }
 
   query += ' ORDER BY date DESC, created_at DESC';
@@ -46,6 +59,9 @@ router.post('/', requireAuth, (req, res) => {
 
   if (!VALID_CATEGORIES.includes(category))
     return res.status(400).json({ error: 'Invalid category.' });
+
+  if (!isValidDate(date))
+    return res.status(400).json({ error: 'Invalid date format.' });
 
   try {
     const db = getDB();
@@ -71,13 +87,38 @@ router.put('/:id', requireAuth, (req, res) => {
     const existing = db.prepare('SELECT * FROM expenses WHERE id = ? AND user_id = ?').get(id, req.session.userId);
     if (!existing) return res.status(404).json({ error: 'Expense not found.' });
 
+    let nextAmount = existing.amount;
+    if (amount !== undefined) {
+      const parsed = parseFloat(amount);
+      if (isNaN(parsed) || parsed <= 0) return res.status(400).json({ error: 'Amount must be a positive number.' });
+      nextAmount = parsed;
+    }
+
+    let nextCategory = existing.category;
+    if (category !== undefined) {
+      if (!VALID_CATEGORIES.includes(category)) return res.status(400).json({ error: 'Invalid category.' });
+      nextCategory = category;
+    }
+
+    let nextDate = existing.date;
+    if (date !== undefined) {
+      if (!isValidDate(date)) return res.status(400).json({ error: 'Invalid date format.' });
+      nextDate = date;
+    }
+
+    let nextNote = existing.note;
+    if (note !== undefined) {
+      const trimmed = String(note).trim();
+      nextNote = trimmed ? trimmed : null;
+    }
+
     db.prepare(
       'UPDATE expenses SET amount = ?, category = ?, note = ?, date = ? WHERE id = ?'
     ).run(
-      parseFloat(amount) || existing.amount,
-      VALID_CATEGORIES.includes(category) ? category : existing.category,
-      note?.trim() || existing.note,
-      date || existing.date,
+      nextAmount,
+      nextCategory,
+      nextNote,
+      nextDate,
       id
     );
 

@@ -10,6 +10,13 @@ const budgetRoutes = require('./routes/budget');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const IS_PROD = process.env.NODE_ENV === 'production';
+
+function currentMonthLocal() {
+    const d = new Date();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    return `${d.getFullYear()}-${m}`;
+}
 
 // Initialize the database
 initDB();
@@ -19,13 +26,21 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+if (IS_PROD && !process.env.SESSION_SECRET) {
+    throw new Error('SESSION_SECRET is required in production');
+}
+
+// If running behind a proxy (common on hosts), secure cookies need this.
+app.set('trust proxy', 1);
+
 app.use(session({
     secret: process.env.SESSION_SECRET || 'spendwise-dev-secret',
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: false,
+        secure: IS_PROD,
         httpOnly: true,
+        sameSite: 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     }
 }));
@@ -41,7 +56,8 @@ app.get('/api/summary', (req, res) => {
     const { getDB } = require('./db/database');
     const db = getDB();
 
-    const month = req.query.month || new Date().toISOString().slice(0, 7); // YYYY-MM
+    const month = req.query.month || currentMonthLocal(); // YYYY-MM
+    if (!/^\d{4}-\d{2}$/.test(month)) return res.status(400).json({ error: 'Invalid month format.' });
 
     const expenses = db.prepare(`
     SELECT category, SUM(amount) as total, COUNT(*) as count

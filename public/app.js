@@ -27,11 +27,18 @@ const CATEGORY_META = {
 
 // ── Helpers ────────────────────────────────
 function todayMonth() {
-  return new Date().toISOString().slice(0, 7);
+  // Use local time (not UTC) to avoid off-by-one near midnight.
+  const d = new Date();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  return `${d.getFullYear()}-${m}`;
 }
 
 function todayDate() {
-  return new Date().toISOString().slice(0, 10);
+  // Use local time (not UTC) to avoid off-by-one near midnight.
+  const d = new Date();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${m}-${day}`;
 }
 
 function daysLeftInMonth() {
@@ -43,7 +50,8 @@ function daysLeftInMonth() {
 function fmt(amount, currency) {
   const c = currency || state.user?.currency || 'QAR';
   return new Intl.NumberFormat('en-US', {
-    style: 'currency', currency: c, maximumFractionDigits: 0,
+    style: 'currency',
+    currency: c,
   }).format(amount);
 }
 
@@ -61,12 +69,29 @@ function formatDate(dateStr) {
 }
 
 async function api(path, options = {}) {
-  const res = await fetch(path, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-    body: options.body ? JSON.stringify(options.body) : undefined,
-  });
-  return res.json();
+  try {
+    const headers = { ...(options.headers || {}) };
+    const hasBody = Object.prototype.hasOwnProperty.call(options, 'body');
+
+    const res = await fetch(path, {
+      ...options,
+      headers: hasBody ? { 'Content-Type': 'application/json', ...headers } : headers,
+      body: hasBody ? JSON.stringify(options.body) : undefined,
+    });
+
+    const contentType = res.headers.get('content-type') || '';
+    const isJson = contentType.includes('application/json');
+    const data = isJson ? await res.json().catch(() => ({})) : {};
+
+    if (!res.ok) {
+      const msg = typeof data?.error === 'string' ? data.error : `Request failed (${res.status})`;
+      return { error: msg };
+    }
+
+    return data && typeof data === 'object' ? data : {};
+  } catch (e) {
+    return { error: 'Network error. Please try again.' };
+  }
 }
 
 function show(el)  { el?.classList.remove('hidden'); }
@@ -296,6 +321,10 @@ function renderCategoryChart(byCategory, total, currency) {
   const emptyEl = $('#chart-empty');
 
   if (!byCategory.length) {
+    if (state.chart) {
+      state.chart.destroy();
+      state.chart = null;
+    }
     show(emptyEl); return;
   }
   hide(emptyEl);
@@ -315,7 +344,10 @@ function renderCategoryChart(byCategory, total, currency) {
         legend: { display: false },
         tooltip: {
           callbacks: {
-            label: ctx => ` ${fmt(ctx.raw, currency)} (${Math.round((ctx.raw / total) * 100)}%)`,
+            label: ctx => {
+              const pct = total > 0 ? ` (${Math.round((ctx.raw / total) * 100)}%)` : '';
+              return ` ${fmt(ctx.raw, currency)}${pct}`;
+            },
           },
         },
       },
@@ -425,12 +457,18 @@ async function loadSettings() {
   const u = state.user;
   $('#settings-name').value     = u.name;
   $('#settings-currency').value = u.currency;
-  $('#budget-month-input').value = todayMonth();
+  if (!$('#budget-month-input').value) $('#budget-month-input').value = todayMonth();
 
   // Load current budget
-  const data = await api(`/api/budget?month=${todayMonth()}`);
+  const data = await api(`/api/budget?month=${$('#budget-month-input').value}`);
   if (data.budget) $('#budget-input').value = data.budget.amount;
 }
+
+$('#budget-month-input').addEventListener('change', async (e) => {
+  const month = e.target.value;
+  const data = await api(`/api/budget?month=${month}`);
+  $('#budget-input').value = data.budget ? data.budget.amount : '';
+});
 
 $('#save-budget-btn').addEventListener('click', async () => {
   const amount = parseFloat($('#budget-input').value);

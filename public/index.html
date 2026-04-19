@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SpendWise — Student Finance Tracker</title>
+  <title>SpendWise &mdash; Student Finance Tracker</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -31,11 +31,11 @@
       <form id="login-form" class="auth-form">
         <div class="field">
           <label>Email</label>
-          <input type="email" id="login-email" placeholder="you@example.com" required />
+          <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email" required />
         </div>
         <div class="field">
           <label>Password</label>
-          <input type="password" id="login-password" placeholder="••••••••" required />
+          <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" required />
         </div>
         <div id="login-error" class="form-error hidden"></div>
         <button type="submit" class="btn-primary full-width">Sign In</button>
@@ -45,26 +45,26 @@
       <form id="register-form" class="auth-form hidden">
         <div class="field">
           <label>Your Name</label>
-          <input type="text" id="reg-name" placeholder="Ahmed Al-Hassan" required />
+          <input type="text" id="reg-name" placeholder="Ahmed Al-Hassan" autocomplete="name" required />
         </div>
         <div class="field">
           <label>Email</label>
-          <input type="email" id="reg-email" placeholder="you@example.com" required />
+          <input type="email" id="reg-email" placeholder="you@example.com" autocomplete="email" required />
         </div>
         <div class="field">
           <label>Password</label>
-          <input type="password" id="reg-password" placeholder="At least 6 characters" required />
+          <input type="password" id="reg-password" placeholder="At least 6 characters" autocomplete="new-password" required />
         </div>
         <div class="field">
           <label>Currency</label>
           <select id="reg-currency">
-            <option value="QAR">QAR — Qatari Riyal</option>
-            <option value="SAR">SAR — Saudi Riyal</option>
-            <option value="AED">AED — UAE Dirham</option>
-            <option value="EGP">EGP — Egyptian Pound</option>
-            <option value="USD">USD — US Dollar</option>
-            <option value="EUR">EUR — Euro</option>
-            <option value="GBP">GBP — British Pound</option>
+            <option value="QAR">QAR - Qatari Riyal</option>
+            <option value="SAR">SAR - Saudi Riyal</option>
+            <option value="AED">AED - UAE Dirham</option>
+            <option value="EGP">EGP - Egyptian Pound</option>
+            <option value="USD">USD - US Dollar</option>
+            <option value="EUR">EUR - Euro</option>
+            <option value="GBP">GBP - British Pound</option>
           </select>
         </div>
         <div id="reg-error" class="form-error hidden"></div>
@@ -279,13 +279,13 @@
             <div class="field">
               <label>Currency</label>
               <select id="settings-currency">
-                <option value="QAR">QAR — Qatari Riyal</option>
-                <option value="SAR">SAR — Saudi Riyal</option>
-                <option value="AED">AED — UAE Dirham</option>
-                <option value="EGP">EGP — Egyptian Pound</option>
-                <option value="USD">USD — US Dollar</option>
-                <option value="EUR">EUR — Euro</option>
-                <option value="GBP">GBP — British Pound</option>
+                <option value="QAR">QAR - Qatari Riyal</option>
+                <option value="SAR">SAR - Saudi Riyal</option>
+                <option value="AED">AED - UAE Dirham</option>
+                <option value="EGP">EGP - Egyptian Pound</option>
+                <option value="USD">USD - US Dollar</option>
+                <option value="EUR">EUR - Euro</option>
+                <option value="GBP">GBP - British Pound</option>
               </select>
             </div>
             <div id="profile-success" class="form-success hidden">Profile updated!</div>
@@ -355,6 +355,6 @@
     <div class="loader-spinner"></div>
   </div>
 
-  <script src="app.js"></script>
+  <script defer src="app.js"></script>
 </body>
 </html>

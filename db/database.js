@@ -15,6 +15,8 @@ function initDB() {
 
   db = new Database(DB_PATH);
   db.pragma('journal_mode = WAL'); // Better performance for concurrent reads
+  db.pragma('foreign_keys = ON');
+  db.pragma('busy_timeout = 5000');
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (

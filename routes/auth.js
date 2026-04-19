@@ -4,6 +4,11 @@ const { getDB } = require('../db/database');
 
 const router = express.Router();
 
+const ALLOWED_CURRENCIES = new Set(['QAR', 'SAR', 'AED', 'EGP', 'USD', 'EUR', 'GBP']);
+function normalizeCurrency(currency) {
+  return ALLOWED_CURRENCIES.has(currency) ? currency : 'QAR';
+}
+
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
   const { name, email, password, currency } = req.body;
@@ -22,11 +27,14 @@ router.post('/register', async (req, res) => {
     const hashed = await bcrypt.hash(password, 10);
     const result = db.prepare(
       'INSERT INTO users (name, email, password, currency) VALUES (?, ?, ?, ?)'
-    ).run(name.trim(), email.toLowerCase(), hashed, currency || 'QAR');
+    ).run(name.trim(), email.toLowerCase(), hashed, normalizeCurrency(currency));
 
-    req.session.userId = result.lastInsertRowid;
-    const user = db.prepare('SELECT id, name, email, currency FROM users WHERE id = ?').get(result.lastInsertRowid);
-    res.status(201).json({ user });
+    req.session.regenerate((regenErr) => {
+      if (regenErr) return res.status(500).json({ error: 'Something went wrong. Please try again.' });
+      req.session.userId = result.lastInsertRowid;
+      const user = db.prepare('SELECT id, name, email, currency FROM users WHERE id = ?').get(result.lastInsertRowid);
+      res.status(201).json({ user });
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Something went wrong. Please try again.' });
@@ -48,8 +56,11 @@ router.post('/login', async (req, res) => {
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) return res.status(401).json({ error: 'Invalid email or password.' });
 
-    req.session.userId = user.id;
-    res.json({ user: { id: user.id, name: user.name, email: user.email, currency: user.currency } });
+    req.session.regenerate((regenErr) => {
+      if (regenErr) return res.status(500).json({ error: 'Something went wrong. Please try again.' });
+      req.session.userId = user.id;
+      res.json({ user: { id: user.id, name: user.name, email: user.email, currency: user.currency } });
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Something went wrong. Please try again.' });
@@ -59,6 +70,7 @@ router.post('/login', async (req, res) => {
 // POST /api/auth/logout
 router.post('/logout', (req, res) => {
   req.session.destroy(() => {
+    res.clearCookie('connect.sid');
     res.json({ success: true });
   });
 });
@@ -83,7 +95,7 @@ router.put('/profile', async (req, res) => {
   try {
     const db = getDB();
     db.prepare('UPDATE users SET name = ?, currency = ? WHERE id = ?')
-      .run(name?.trim() || 'User', currency || 'QAR', req.session.userId);
+      .run(name?.trim() || 'User', normalizeCurrency(currency), req.session.userId);
     const user = db.prepare('SELECT id, name, email, currency FROM users WHERE id = ?').get(req.session.userId);
     res.json({ user });
   } catch (err) {
