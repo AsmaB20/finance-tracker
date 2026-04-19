@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SpendWise — Student Finance Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ────────── AUTH SCREEN ────────── -->
+  <div id="auth-screen" class="auth-screen hidden">
+    <div class="auth-bg"></div>
+    <div class="auth-card">
+      <div class="auth-brand">
+        <div class="brand-icon">💸</div>
+        <h1>SpendWise</h1>
+        <p>Your simple student finance tracker</p>
+      </div>
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-tab="login">Sign In</button>
+        <button class="auth-tab" data-tab="register">Create Account</button>
+      </div>
+
+      <!-- Login Form -->
+      <form id="login-form" class="auth-form">
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="login-email" placeholder="you@example.com" required />
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="login-password" placeholder="••••••••" required />
+        </div>
+        <div id="login-error" class="form-error hidden"></div>
+        <button type="submit" class="btn-primary full-width">Sign In</button>
+      </form>
+
+      <!-- Register Form -->
+      <form id="register-form" class="auth-form hidden">
+        <div class="field">
+          <label>Your Name</label>
+          <input type="text" id="reg-name" placeholder="Ahmed Al-Hassan" required />
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="reg-email" placeholder="you@example.com" required />
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="reg-password" placeholder="At least 6 characters" required />
+        </div>
+        <div class="field">
+          <label>Currency</label>
+          <select id="reg-currency">
+            <option value="QAR">QAR — Qatari Riyal</option>
+            <option value="SAR">SAR — Saudi Riyal</option>
+            <option value="AED">AED — UAE Dirham</option>
+            <option value="EGP">EGP — Egyptian Pound</option>
+            <option value="USD">USD — US Dollar</option>
+            <option value="EUR">EUR — Euro</option>
+            <option value="GBP">GBP — British Pound</option>
+          </select>
+        </div>
+        <div id="reg-error" class="form-error hidden"></div>
+        <button type="submit" class="btn-primary full-width">Create Account</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ────────── MAIN APP ────────── -->
+  <div id="app" class="app hidden">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <span class="brand-emoji">💸</span>
+        <span class="brand-name">SpendWise</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a class="nav-item active" data-view="dashboard">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          Dashboard
+        </a>
+        <a class="nav-item" data-view="history">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+          History
+        </a>
+        <a class="nav-item" data-view="settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          Settings
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar" id="sidebar-avatar">A</div>
+          <div class="user-details">
+            <span class="user-name" id="sidebar-name">Loading...</span>
+            <span class="user-currency" id="sidebar-currency">QAR</span>
+          </div>
+        </div>
+        <button class="logout-btn" id="logout-btn" title="Sign out">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+      <!-- ─── DASHBOARD VIEW ─── -->
+      <div id="view-dashboard" class="view">
+        <div class="view-header">
+          <div>
+            <h2 id="dash-greeting">Good morning 👋</h2>
+            <p class="view-subtitle">Here's your spending overview</p>
+          </div>
+          <div class="header-actions">
+            <input type="month" id="dash-month-picker" class="month-picker" />
+            <button class="btn-primary" id="add-expense-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Expense
+            </button>
+          </div>
+        </div>
+
+        <!-- Metric Cards -->
+        <div class="metric-grid">
+          <div class="metric-card">
+            <div class="metric-icon" style="background:#EEF2FF">💰</div>
+            <div class="metric-body">
+              <span class="metric-label">Total Spent</span>
+              <span class="metric-value" id="metric-spent">—</span>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon" style="background:#F0FDF4">🎯</div>
+            <div class="metric-body">
+              <span class="metric-label">Remaining</span>
+              <span class="metric-value" id="metric-remaining">—</span>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon" style="background:#FFF7ED">📅</div>
+            <div class="metric-body">
+              <span class="metric-label">Days Left</span>
+              <span class="metric-value" id="metric-days">—</span>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon" style="background:#FDF4FF">📊</div>
+            <div class="metric-body">
+              <span class="metric-label">Monthly Budget</span>
+              <span class="metric-value" id="metric-budget">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Budget Progress -->
+        <div class="card budget-progress-card" id="budget-progress-section">
+          <div class="budget-progress-header">
+            <span class="card-label">Budget Used</span>
+            <span id="budget-pct-label" class="budget-pct">0%</span>
+          </div>
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill" id="progress-fill"></div>
+          </div>
+          <p class="budget-hint" id="budget-hint">Set a monthly budget in Settings to track your progress.</p>
+        </div>
+
+        <!-- Chart + Categories -->
+        <div class="two-col">
+          <div class="card chart-card">
+            <h3 class="card-title">Spending by Category</h3>
+            <div class="chart-wrap">
+              <canvas id="category-chart"></canvas>
+              <div class="chart-empty hidden" id="chart-empty">
+                <span>No expenses yet</span>
+              </div>
+            </div>
+          </div>
+          <div class="card category-list-card">
+            <h3 class="card-title">Breakdown</h3>
+            <div id="category-breakdown" class="category-breakdown">
+              <p class="empty-state">No expenses this month.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Recent Transactions</h3>
+            <button class="btn-link" data-view="history">See all</button>
+          </div>
+          <div id="recent-transactions" class="transaction-list">
+            <p class="empty-state">No transactions yet. Add your first expense!</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── HISTORY VIEW ─── -->
+      <div id="view-history" class="view hidden">
+        <div class="view-header">
+          <div>
+            <h2>Transaction History</h2>
+            <p class="view-subtitle">All your expenses in one place</p>
+          </div>
+          <div class="header-actions">
+            <input type="month" id="hist-month-picker" class="month-picker" />
+            <button class="btn-primary" id="hist-add-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Expense
+            </button>
+          </div>
+        </div>
+
+        <!-- Category Filter -->
+        <div class="filter-pills" id="hist-filters">
+          <button class="pill active" data-cat="all">All</button>
+          <button class="pill" data-cat="Food">🍕 Food</button>
+          <button class="pill" data-cat="Rent">🏠 Rent</button>
+          <button class="pill" data-cat="Transport">🚗 Transport</button>
+          <button class="pill" data-cat="Shopping">🛍️ Shopping</button>
+          <button class="pill" data-cat="Subscriptions">📱 Subscriptions</button>
+          <button class="pill" data-cat="Going Out">🎉 Going Out</button>
+          <button class="pill" data-cat="Health">💊 Health</button>
+          <button class="pill" data-cat="Other">📦 Other</button>
+        </div>
+
+        <div class="card">
+          <div id="history-list" class="transaction-list">
+            <p class="empty-state">No transactions found.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── SETTINGS VIEW ─── -->
+      <div id="view-settings" class="view hidden">
+        <div class="view-header">
+          <div>
+            <h2>Settings</h2>
+            <p class="view-subtitle">Manage your account and budget</p>
+          </div>
+        </div>
+
+        <div class="settings-grid">
+          <!-- Monthly Budget -->
+          <div class="card settings-card">
+            <h3 class="card-title">Monthly Budget</h3>
+            <p class="card-desc">Set how much you plan to spend this month.</p>
+            <div class="field">
+              <label>Budget Amount (<span id="settings-currency-label">QAR</span>)</label>
+              <input type="number" id="budget-input" placeholder="e.g. 3000" min="1" step="any" />
+            </div>
+            <div class="field">
+              <label>Month</label>
+              <input type="month" id="budget-month-input" />
+            </div>
+            <div id="budget-success" class="form-success hidden">Budget saved!</div>
+            <button class="btn-primary" id="save-budget-btn">Save Budget</button>
+          </div>
+
+          <!-- Profile -->
+          <div class="card settings-card">
+            <h3 class="card-title">Profile</h3>
+            <p class="card-desc">Update your display name and preferred currency.</p>
+            <div class="field">
+              <label>Name</label>
+              <input type="text" id="settings-name" placeholder="Your name" />
+            </div>
+            <div class="field">
+              <label>Currency</label>
+              <select id="settings-currency">
+                <option value="QAR">QAR — Qatari Riyal</option>
+                <option value="SAR">SAR — Saudi Riyal</option>
+                <option value="AED">AED — UAE Dirham</option>
+                <option value="EGP">EGP — Egyptian Pound</option>
+                <option value="USD">USD — US Dollar</option>
+                <option value="EUR">EUR — Euro</option>
+                <option value="GBP">GBP — British Pound</option>
+              </select>
+            </div>
+            <div id="profile-success" class="form-success hidden">Profile updated!</div>
+            <button class="btn-primary" id="save-profile-btn">Save Changes</button>
+          </div>
+
+          <!-- Danger Zone -->
+          <div class="card settings-card danger-card">
+            <h3 class="card-title">Account</h3>
+            <p class="card-desc">Sign out of your SpendWise account.</p>
+            <button class="btn-danger" id="settings-logout-btn">Sign Out</button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ─── ADD EXPENSE MODAL ─── -->
+  <div class="modal-overlay hidden" id="expense-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Add Expense</h3>
+        <button class="modal-close" id="modal-close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <form id="expense-form">
+        <div class="field">
+          <label>Amount (<span class="modal-currency">QAR</span>)</label>
+          <input type="number" id="exp-amount" placeholder="0.00" min="0.01" step="any" required />
+        </div>
+
+        <div class="field">
+          <label>Category</label>
+          <div class="category-grid" id="category-selector">
+            <button type="button" class="cat-btn active" data-cat="Food">🍕<span>Food</span></button>
+            <button type="button" class="cat-btn" data-cat="Rent">🏠<span>Rent</span></button>
+            <button type="button" class="cat-btn" data-cat="Transport">🚗<span>Transport</span></button>
+            <button type="button" class="cat-btn" data-cat="Shopping">🛍️<span>Shopping</span></button>
+            <button type="button" class="cat-btn" data-cat="Subscriptions">📱<span>Subscriptions</span></button>
+            <button type="button" class="cat-btn" data-cat="Going Out">🎉<span>Going Out</span></button>
+            <button type="button" class="cat-btn" data-cat="Health">💊<span>Health</span></button>
+            <button type="button" class="cat-btn" data-cat="Other">📦<span>Other</span></button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Date</label>
+          <input type="date" id="exp-date" required />
+        </div>
+
+        <div class="field">
+          <label>Note <span class="optional">(optional)</span></label>
+          <input type="text" id="exp-note" placeholder="e.g. Lunch at campus, Netflix..." />
+        </div>
+
+        <div id="exp-error" class="form-error hidden"></div>
+        <button type="submit" class="btn-primary full-width" id="exp-submit">Add Expense</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ─── LOADING OVERLAY ─── -->
+  <div id="page-loader" class="page-loader">
+    <div class="loader-spinner"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
