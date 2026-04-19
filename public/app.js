@@ -388,13 +388,20 @@ function renderTransactions(expenses, containerSel, currency, readOnly = false) 
 
   el.innerHTML = expenses.map(exp => {
     const meta = CATEGORY_META[exp.category] || { icon: '📦', color: '#AEB6BF' };
-    const deleteBtn = readOnly ? '' : `
+    const actions = readOnly ? '' : `
+      <button class="tx-edit" data-id="${exp.id}" title="Edit">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 20h9"/>
+          <path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/>
+        </svg>
+      </button>
       <button class="tx-delete" data-id="${exp.id}" title="Delete">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
           <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
         </svg>
-      </button>`;
+      </button>
+    `;
     return `
       <div class="transaction-item" data-id="${exp.id}">
         <div class="tx-icon" style="background:${meta.color}22">${meta.icon}</div>
@@ -404,13 +411,16 @@ function renderTransactions(expenses, containerSel, currency, readOnly = false) 
         </div>
         <div class="tx-date">${formatDate(exp.date)}</div>
         <div class="tx-amount">${fmt(exp.amount, currency)}</div>
-        ${deleteBtn}
+        ${actions}
       </div>
     `;
   }).join('');
 
-  // Bind delete buttons
+  // Bind action buttons
   if (!readOnly) {
+    el.querySelectorAll('.tx-edit').forEach(btn => {
+      btn.addEventListener('click', () => openEditExpense(btn.dataset.id));
+    });
     el.querySelectorAll('.tx-delete').forEach(btn => {
       btn.addEventListener('click', () => deleteExpense(btn.dataset.id));
     });
@@ -433,7 +443,8 @@ async function loadHistory() {
   if (cat !== 'all') url += `&category=${encodeURIComponent(cat)}`;
 
   const data = await api(url);
-  renderTransactions(data.expenses || [], '#history-list', state.user.currency);
+  state.expenses = data.expenses || [];
+  renderTransactions(state.expenses, '#history-list', state.user.currency);
 }
 
 $('#hist-month-picker').addEventListener('change', (e) => {
@@ -512,18 +523,53 @@ $('#save-profile-btn').addEventListener('click', async () => {
 
 // ── Add Expense Modal ─────────────────────
 let selectedCategory = 'Food';
+let editingExpenseId = null;
+
+function setModalMode(mode) {
+  const titleEl = $('#expense-modal .modal-header h3');
+  const submitBtn = $('#exp-submit');
+  if (mode === 'edit') {
+    titleEl.textContent = 'Edit Expense';
+    submitBtn.textContent = 'Save Changes';
+  } else {
+    titleEl.textContent = 'Add Expense';
+    submitBtn.textContent = 'Add Expense';
+  }
+}
 
 function openModal() {
+  editingExpenseId = null;
+  setModalMode('add');
   show($('#expense-modal'));
   $('#exp-amount').focus();
   $('#exp-date').value = todayDate();
   hide($('#exp-error'));
 }
 
+function openEditExpense(id) {
+  const exp = state.expenses.find(e => String(e.id) === String(id));
+  if (!exp) return alert('Could not find this transaction. Please refresh and try again.');
+
+  editingExpenseId = exp.id;
+  setModalMode('edit');
+  show($('#expense-modal'));
+  hide($('#exp-error'));
+
+  $('#exp-amount').value = exp.amount;
+  $('#exp-date').value = exp.date;
+  $('#exp-note').value = exp.note || '';
+
+  selectedCategory = exp.category;
+  $$('.cat-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === selectedCategory));
+  $('#exp-amount').focus();
+}
+
 function closeModal() {
   hide($('#expense-modal'));
   $('#expense-form').reset();
   $('#exp-date').value = todayDate();
+  editingExpenseId = null;
+  setModalMode('add');
   selectedCategory = 'Food';
   $$('.cat-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === 'Food'));
 }
@@ -561,9 +607,11 @@ $('#expense-form').addEventListener('submit', async (e) => {
   submitBtn.textContent = 'Saving...';
   submitBtn.disabled = true;
 
-  const data = await api('/api/expenses', { method: 'POST', body });
+  const data = editingExpenseId
+    ? await api(`/api/expenses/${editingExpenseId}`, { method: 'PUT', body })
+    : await api('/api/expenses', { method: 'POST', body });
 
-  submitBtn.textContent = 'Add Expense';
+  submitBtn.textContent = editingExpenseId ? 'Save Changes' : 'Add Expense';
   submitBtn.disabled = false;
 
   if (data.error) {

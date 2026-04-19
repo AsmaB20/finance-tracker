@@ -466,12 +466,16 @@ body {
 .tx-note     { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tx-date     { font-size: 12px; color: var(--text-muted); }
 .tx-amount   { font-size: 15px; font-weight: 600; color: var(--text-primary); flex-shrink: 0; }
+.tx-edit,
 .tx-delete {
   background: none; border: none; cursor: pointer; color: var(--text-muted);
   padding: 6px; border-radius: 6px; display: flex;
   transition: color 0.15s, background 0.15s; flex-shrink: 0;
+  margin-left: 6px;
 }
+.tx-edit svg,
 .tx-delete svg { width: 16px; height: 16px; }
+.tx-edit:hover { color: var(--accent); background: var(--accent-light); }
 .tx-delete:hover { color: var(--danger); background: var(--danger-light); }
 
 /* ── Filter Pills ── */
