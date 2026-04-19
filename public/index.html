@@ -225,6 +225,7 @@
         <!-- Category Filter -->
         <div class="filter-pills" id="hist-filters">
           <button class="pill active" data-cat="all">All</button>
+          <button class="pill" data-cat="Groceries">🛒 Groceries</button>
           <button class="pill" data-cat="Food">🍕 Food</button>
           <button class="pill" data-cat="Rent">🏠 Rent</button>
           <button class="pill" data-cat="Transport">🚗 Transport</button>
@@ -292,6 +293,19 @@
             <button class="btn-primary" id="save-profile-btn">Save Changes</button>
           </div>
 
+          <!-- Categories -->
+          <div class="card settings-card">
+            <h3 class="card-title">Categories</h3>
+            <p class="card-desc">Add custom categories for your transactions.</p>
+            <div class="field">
+              <label>New category</label>
+              <input type="text" id="new-category-name" placeholder="e.g. Tuition, Books, Gifts" maxlength="24" />
+            </div>
+            <div id="category-success" class="form-success hidden">Category added!</div>
+            <button class="btn-primary" id="add-category-btn">Add Category</button>
+            <div class="category-chip-list" id="categories-list"></div>
+          </div>
+
           <!-- Danger Zone -->
           <div class="card settings-card danger-card">
             <h3 class="card-title">Account</h3>
@@ -323,6 +337,7 @@
         <div class="field">
           <label>Category</label>
           <div class="category-grid" id="category-selector">
+            <button type="button" class="cat-btn" data-cat="Groceries">🛒<span>Groceries</span></button>
             <button type="button" class="cat-btn active" data-cat="Food">🍕<span>Food</span></button>
             <button type="button" class="cat-btn" data-cat="Rent">🏠<span>Rent</span></button>
             <button type="button" class="cat-btn" data-cat="Transport">🚗<span>Transport</span></button>

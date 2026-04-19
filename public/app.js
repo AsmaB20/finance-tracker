@@ -11,19 +11,14 @@ const state = {
   historyMonth: todayMonth(),
   historyCategory: 'all',
   expenses: [],
+  categories: [],
+  categoryMeta: {},
   chart: null,
 };
 
-const CATEGORY_META = {
-  'Food':          { icon: '🍕', color: '#FF6B6B' },
-  'Rent':          { icon: '🏠', color: '#4ECDC4' },
-  'Transport':     { icon: '🚗', color: '#45B7D1' },
-  'Shopping':      { icon: '🛍️', color: '#F7DC6F' },
-  'Subscriptions': { icon: '📱', color: '#BB8FCE' },
-  'Going Out':     { icon: '🎉', color: '#F0A500' },
-  'Health':        { icon: '💊', color: '#58D68D' },
-  'Other':         { icon: '📦', color: '#AEB6BF' },
-};
+function getCategoryMeta(name) {
+  return state.categoryMeta?.[name] || { icon: '📦', color: '#AEB6BF' };
+}
 
 // ── Helpers ────────────────────────────────
 function todayMonth() {
@@ -117,6 +112,7 @@ async function checkAuth() {
   const data = await api('/api/auth/me');
   if (data.user) {
     state.user = data.user;
+    await loadCategories();
     showApp();
   } else {
     showAuthScreen();
@@ -134,6 +130,32 @@ function showApp() {
   show($('#app'));
   updateSidebar();
   navigateTo('dashboard');
+}
+
+async function loadCategories() {
+  const data = await api('/api/categories');
+  if (data.error) return;
+
+  state.categories = data.categories || [];
+  state.categoryMeta = {};
+  for (const c of state.categories) {
+    state.categoryMeta[c.name] = { icon: c.icon || '🏷️', color: c.color || '#AEB6BF' };
+  }
+
+  // Keep selection sane if a category was removed/renamed later.
+  if (state.categories.length) {
+    const exists = state.categories.some(c => c.name === selectedCategory);
+    if (!exists) selectedCategory = state.categories[0].name;
+
+    if (state.historyCategory !== 'all') {
+      const historyExists = state.categories.some(c => c.name === state.historyCategory);
+      if (!historyExists) state.historyCategory = 'all';
+    }
+  }
+
+  renderCategorySelector();
+  renderHistoryFilters();
+  renderCategoriesList();
 }
 
 // Auth tabs
@@ -331,7 +353,7 @@ function renderCategoryChart(byCategory, total, currency) {
 
   const labels  = byCategory.map(c => c.category);
   const amounts = byCategory.map(c => c.total);
-  const colors  = byCategory.map(c => CATEGORY_META[c.category]?.color || '#AEB6BF');
+  const colors  = byCategory.map(c => getCategoryMeta(c.category).color || '#AEB6BF');
 
   if (state.chart) state.chart.destroy();
 
@@ -365,7 +387,7 @@ function renderCategoryBreakdown(byCategory, total, currency) {
 
   const sorted = [...byCategory].sort((a, b) => b.total - a.total);
   el.innerHTML = sorted.map(c => {
-    const meta = CATEGORY_META[c.category] || { icon: '📦', color: '#AEB6BF' };
+    const meta = getCategoryMeta(c.category);
     const pct  = total > 0 ? Math.round((c.total / total) * 100) : 0;
     return `
       <div class="cat-row">
@@ -387,7 +409,7 @@ function renderTransactions(expenses, containerSel, currency, readOnly = false) 
   }
 
   el.innerHTML = expenses.map(exp => {
-    const meta = CATEGORY_META[exp.category] || { icon: '📦', color: '#AEB6BF' };
+    const meta = getCategoryMeta(exp.category);
     const actions = readOnly ? '' : `
       <button class="tx-edit" data-id="${exp.id}" title="Edit">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -457,9 +479,8 @@ $('#hist-add-btn').addEventListener('click', openModal);
 $('#hist-filters').addEventListener('click', (e) => {
   const pill = e.target.closest('.pill');
   if (!pill) return;
-  $$('#hist-filters .pill').forEach(p => p.classList.remove('active'));
-  pill.classList.add('active');
   state.historyCategory = pill.dataset.cat;
+  renderHistoryFilters();
   loadHistory();
 });
 
@@ -473,6 +494,8 @@ async function loadSettings() {
   // Load current budget
   const data = await api(`/api/budget?month=${$('#budget-month-input').value}`);
   if (data.budget) $('#budget-input').value = data.budget.amount;
+
+  renderCategoriesList();
 }
 
 $('#budget-month-input').addEventListener('change', async (e) => {
@@ -537,6 +560,59 @@ function setModalMode(mode) {
   }
 }
 
+function renderCategorySelector() {
+  const el = $('#category-selector');
+  if (!el) return;
+
+  if (!state.categories.length) {
+    el.innerHTML = '<p class="empty-state">No categories.</p>';
+    return;
+  }
+
+  el.innerHTML = state.categories.map(c => {
+    const meta = getCategoryMeta(c.name);
+    const active = c.name === selectedCategory ? ' active' : '';
+    return `<button type="button" class="cat-btn${active}" data-cat="${c.name}">${meta.icon}<span>${c.name}</span></button>`;
+  }).join('');
+}
+
+function renderHistoryFilters() {
+  const el = $('#hist-filters');
+  if (!el) return;
+
+  const cats = state.categories || [];
+  const allActive = state.historyCategory === 'all' ? ' active' : '';
+  const pills = [`<button class="pill${allActive}" data-cat="all">All</button>`];
+
+  for (const c of cats) {
+    const meta = getCategoryMeta(c.name);
+    const active = state.historyCategory === c.name ? ' active' : '';
+    pills.push(`<button class="pill${active}" data-cat="${c.name}">${meta.icon} ${c.name}</button>`);
+  }
+
+  el.innerHTML = pills.join('');
+}
+
+function renderCategoriesList() {
+  const el = $('#categories-list');
+  if (!el) return;
+
+  if (!state.categories.length) {
+    el.innerHTML = '<p class="empty-state">No categories yet.</p>';
+    return;
+  }
+
+  el.innerHTML = state.categories.map(c => {
+    const meta = getCategoryMeta(c.name);
+    return `
+      <div class="category-chip">
+        <span class="category-chip-dot" style="background:${meta.color}"></span>
+        <span>${meta.icon} ${c.name}</span>
+      </div>
+    `;
+  }).join('');
+}
+
 function openModal() {
   editingExpenseId = null;
   setModalMode('add');
@@ -588,6 +664,26 @@ $('#category-selector').addEventListener('click', (e) => {
   $$('.cat-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   selectedCategory = btn.dataset.cat;
+});
+
+$('#add-category-btn')?.addEventListener('click', async () => {
+  const input = $('#new-category-name');
+  const successEl = $('#category-success');
+  hide(successEl);
+
+  const name = input.value.trim();
+  if (!name) return alert('Please enter a category name.');
+
+  const data = await api('/api/categories', { method: 'POST', body: { name } });
+  if (data.error) return alert(data.error);
+
+  input.value = '';
+  state.categories = data.categories || state.categories;
+  state.categoryMeta = state.categoryMeta || {};
+  // Reload to ensure meta stays consistent (and updates selector/filters everywhere).
+  await loadCategories();
+  show(successEl);
+  setTimeout(() => hide(successEl), 2500);
 });
 
 // Submit expense

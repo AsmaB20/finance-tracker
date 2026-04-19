@@ -1,9 +1,9 @@
 const express = require('express');
 const { getDB } = require('../db/database');
+const { ensureDefaultCategories, categoryExists } = require('../db/categories');
 
 const router = express.Router();
 
-const VALID_CATEGORIES = ['Food', 'Rent', 'Transport', 'Shopping', 'Subscriptions', 'Going Out', 'Health', 'Other'];
 const MONTH_RE = /^\d{4}-\d{2}$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -13,6 +13,14 @@ function isValidMonth(month) {
 
 function isValidDate(date) {
   return typeof date === 'string' && DATE_RE.test(date);
+}
+
+function getCanonicalCategoryName(db, userId, name) {
+  if (typeof name !== 'string' || !name.trim()) return null;
+  const row = db
+    .prepare('SELECT name FROM categories WHERE user_id = ? AND LOWER(name) = LOWER(?)')
+    .get(userId, name.trim());
+  return row?.name || null;
 }
 
 // Auth guard middleware
@@ -26,6 +34,8 @@ router.get('/', requireAuth, (req, res) => {
   const db = getDB();
   const { month, category } = req.query; // month = YYYY-MM
 
+  ensureDefaultCategories(db, req.session.userId);
+
   let query = 'SELECT * FROM expenses WHERE user_id = ?';
   const params = [req.session.userId];
 
@@ -34,11 +44,13 @@ router.get('/', requireAuth, (req, res) => {
     query += ` AND strftime('%Y-%m', date) = ?`;
     params.push(month);
   }
-  if (category && VALID_CATEGORIES.includes(category)) {
+  if (category && category !== 'all') {
+    const canonical = getCanonicalCategoryName(db, req.session.userId, category);
+    if (!canonical) {
+      return res.status(400).json({ error: 'Invalid category.' });
+    }
     query += ' AND category = ?';
-    params.push(category);
-  } else if (category && category !== 'all') {
-    return res.status(400).json({ error: 'Invalid category.' });
+    params.push(canonical);
   }
 
   query += ' ORDER BY date DESC, created_at DESC';
@@ -57,17 +69,18 @@ router.post('/', requireAuth, (req, res) => {
   if (isNaN(parseFloat(amount)) || parseFloat(amount) <= 0)
     return res.status(400).json({ error: 'Amount must be a positive number.' });
 
-  if (!VALID_CATEGORIES.includes(category))
-    return res.status(400).json({ error: 'Invalid category.' });
-
-  if (!isValidDate(date))
-    return res.status(400).json({ error: 'Invalid date format.' });
-
   try {
     const db = getDB();
+    ensureDefaultCategories(db, req.session.userId);
+    const canonical = getCanonicalCategoryName(db, req.session.userId, category);
+    if (!canonical) return res.status(400).json({ error: 'Invalid category.' });
+
+    if (!isValidDate(date))
+      return res.status(400).json({ error: 'Invalid date format.' });
+
     const result = db.prepare(
       'INSERT INTO expenses (user_id, amount, category, note, date) VALUES (?, ?, ?, ?, ?)'
-    ).run(req.session.userId, parseFloat(amount), category, note?.trim() || null, date);
+    ).run(req.session.userId, parseFloat(amount), canonical, note?.trim() || null, date);
 
     const expense = db.prepare('SELECT * FROM expenses WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json({ expense });
@@ -84,6 +97,7 @@ router.put('/:id', requireAuth, (req, res) => {
 
   try {
     const db = getDB();
+    ensureDefaultCategories(db, req.session.userId);
     const existing = db.prepare('SELECT * FROM expenses WHERE id = ? AND user_id = ?').get(id, req.session.userId);
     if (!existing) return res.status(404).json({ error: 'Expense not found.' });
 
@@ -96,8 +110,9 @@ router.put('/:id', requireAuth, (req, res) => {
 
     let nextCategory = existing.category;
     if (category !== undefined) {
-      if (!VALID_CATEGORIES.includes(category)) return res.status(400).json({ error: 'Invalid category.' });
-      nextCategory = category;
+      const canonical = getCanonicalCategoryName(db, req.session.userId, category);
+      if (!canonical) return res.status(400).json({ error: 'Invalid category.' });
+      nextCategory = canonical;
     }
 
     let nextDate = existing.date;

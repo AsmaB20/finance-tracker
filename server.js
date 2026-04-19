@@ -7,6 +7,7 @@ const { initDB } = require('./db/database');
 const authRoutes = require('./routes/auth');
 const expensesRoutes = require('./routes/expenses');
 const budgetRoutes = require('./routes/budget');
+const categoriesRoutes = require('./routes/categories');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -49,6 +50,7 @@ app.use(session({
 app.use('/api/auth', authRoutes);
 app.use('/api/expenses', expensesRoutes);
 app.use('/api/budget', budgetRoutes);
+app.use('/api/categories', categoriesRoutes);
 
 // Summary route — spending overview for a given month
 app.get('/api/summary', (req, res) => {

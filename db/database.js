@@ -28,6 +28,27 @@ function initDB() {
       created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS categories (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id     INTEGER NOT NULL,
+      name        TEXT    NOT NULL,
+      icon        TEXT    DEFAULT '🏷️',
+      color       TEXT    DEFAULT '#AEB6BF',
+      created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(user_id, name),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    -- If any duplicates exist (case-insensitive), keep the earliest.
+    DELETE FROM categories
+    WHERE id NOT IN (
+      SELECT MIN(id) FROM categories GROUP BY user_id, LOWER(name)
+    );
+
+    -- Enforce uniqueness even if user changes casing/spaces.
+    CREATE UNIQUE INDEX IF NOT EXISTS categories_user_lower_name_uq
+    ON categories(user_id, LOWER(name));
+
     CREATE TABLE IF NOT EXISTS budgets (
       id       INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id  INTEGER NOT NULL,

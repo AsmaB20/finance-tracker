@@ -1,6 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const { getDB } = require('../db/database');
+const { ensureDefaultCategories } = require('../db/categories');
 
 const router = express.Router();
 
@@ -29,6 +30,8 @@ router.post('/register', async (req, res) => {
       'INSERT INTO users (name, email, password, currency) VALUES (?, ?, ?, ?)'
     ).run(name.trim(), email.toLowerCase(), hashed, normalizeCurrency(currency));
 
+    ensureDefaultCategories(db, result.lastInsertRowid);
+
     req.session.regenerate((regenErr) => {
       if (regenErr) return res.status(500).json({ error: 'Something went wrong. Please try again.' });
       req.session.userId = result.lastInsertRowid;
@@ -55,6 +58,8 @@ router.post('/login', async (req, res) => {
 
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) return res.status(401).json({ error: 'Invalid email or password.' });
+
+    ensureDefaultCategories(db, user.id);
 
     req.session.regenerate((regenErr) => {
       if (regenErr) return res.status(500).json({ error: 'Something went wrong. Please try again.' });
